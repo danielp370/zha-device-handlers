@@ -23,6 +23,8 @@ class EnchantedDeviceV2(EnchantedDevice):
 
 
 class TuyaPoolManufCluster(TuyaMCUCluster):
+    """Tuya Manufacturer cluster with automatic data point refresh logic."""
+
     def __init__(self, *args, **kwargs):
         """Init."""
         super().__init__(*args, **kwargs)
@@ -33,11 +35,13 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         self.handle_auto_update_check_change()
 
     def handle_auto_update_cancel(self):
+        """Auto update timer cancel."""
         if self._update_timer_handle:
             self._update_timer_handle.cancel()
             self._update_timer_handle = None
 
     def handle_auto_update_setup_next_call(self, force_new_interval=False):
+        """Auto update schedule next update."""
         tuya_cluster = self.endpoint.device.endpoints[1].in_clusters.get(
             TuyaMCUCluster.cluster_id, None
         )
@@ -49,7 +53,7 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
                 self.next_refresh_interval = interval
                 force_new_interval = True
 
-        if force_new_interval == True and self.next_refresh_interval > 0:
+        if force_new_interval and self.next_refresh_interval > 0:
             self.debug(
                 "using refresh interval of %d minutes", self.next_refresh_interval
             )
@@ -58,14 +62,17 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
             )
 
     def handle_auto_update_check_change(self):
+        """Auto update schedule next interval check."""
         self.handle_auto_update_setup_next_call()
         self._loop.call_later(self.check_interval, self.handle_auto_update_check_change)
 
     def handle_auto_update_timer_wrapper(self):
+        """Auto update handle refresh and schedule next update."""
         self.create_catching_task(self.handle_auto_update())
         self.handle_auto_update_setup_next_call(force_new_interval=True)
 
     async def handle_auto_update(self):
+        """Auto update invoke data refresh command."""
         tuya_cluster = self.endpoint.device.endpoints[1].in_clusters[
             TuyaMCUCluster.cluster_id
         ]
