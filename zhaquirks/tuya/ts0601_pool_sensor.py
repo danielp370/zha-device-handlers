@@ -3,21 +3,22 @@
 import asyncio
 
 from zigpy.quirks.v2 import CustomDeviceV2
-from zigpy.quirks.v2.homeassistant import UnitOfTime, UnitOfElectricPotential
-from zigpy.quirks.v2.homeassistant.sensor import SensorDeviceClass, SensorStateClass
+from zigpy.quirks.v2.homeassistant import UnitOfElectricPotential, UnitOfTime
 from zigpy.quirks.v2.homeassistant.number import NumberDeviceClass
-
+from zigpy.quirks.v2.homeassistant.sensor import SensorDeviceClass, SensorStateClass
 import zigpy.types as t
 
-from zhaquirks.tuya import TUYA_QUERY_DATA, TuyaNewManufCluster, EnchantedDevice
-from zhaquirks.tuya.mcu import TuyaMCUCluster, TuyaPowerConfigurationCluster
+from zhaquirks.tuya import TUYA_QUERY_DATA, EnchantedDevice, TuyaNewManufCluster
 from zhaquirks.tuya.builder import TuyaQuirkBuilder
-
+from zhaquirks.tuya.mcu import TuyaMCUCluster, TuyaPowerConfigurationCluster
 
 # Create a quirks v2 of Tuya's EnchantedDevice as we need Tuya spells
 EnchantedDevice.__bases__ = (CustomDeviceV2,)
+
+
 class EnchantedDeviceV2(EnchantedDevice):
     """Updated version of EnchantedDevice based on CustomDeviceV2."""
+
     tuya_spell_data_query: bool = True  # Enable data query spell
 
 
@@ -32,12 +33,14 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         self.handle_auto_update_check_change()
 
     def handle_auto_update_cancel(self):
-         if self._update_timer_handle:
+        if self._update_timer_handle:
             self._update_timer_handle.cancel()
-            self._update_timer_handle = None       
+            self._update_timer_handle = None
 
     def handle_auto_update_setup_next_call(self, force_new_interval=False):
-        tuya_cluster = self.endpoint.device.endpoints[1].in_clusters.get(TuyaMCUCluster.cluster_id, None)
+        tuya_cluster = self.endpoint.device.endpoints[1].in_clusters.get(
+            TuyaMCUCluster.cluster_id, None
+        )
         if tuya_cluster and "auto_refresh_interval" in tuya_cluster.attributes_by_name:
             interval = tuya_cluster.get("auto_refresh_interval", 0) * 60
             # Check for a change to auto refresh number
@@ -47,9 +50,12 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
                 force_new_interval = True
 
         if force_new_interval == True and self.next_refresh_interval > 0:
-            self.debug("using refresh interval of %d minutes", self.next_refresh_interval)
-            self._update_timer_handle = self._loop.call_later(self.next_refresh_interval,
-                                                              self.handle_auto_update_timer_wrapper)
+            self.debug(
+                "using refresh interval of %d minutes", self.next_refresh_interval
+            )
+            self._update_timer_handle = self._loop.call_later(
+                self.next_refresh_interval, self.handle_auto_update_timer_wrapper
+            )
 
     def handle_auto_update_check_change(self):
         self.handle_auto_update_setup_next_call()
@@ -60,7 +66,9 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         self.handle_auto_update_setup_next_call(force_new_interval=True)
 
     async def handle_auto_update(self):
-        tuya_cluster = self.endpoint.device.endpoints[1].in_clusters[TuyaMCUCluster.cluster_id]
+        tuya_cluster = self.endpoint.device.endpoints[1].in_clusters[
+            TuyaMCUCluster.cluster_id
+        ]
         self.debug("sending refresh query command")
         await tuya_cluster.command(TUYA_QUERY_DATA)
 
@@ -69,7 +77,6 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
     TuyaQuirkBuilder("_TZE200_v1jqz5cy", "TS0601")
     .device_class(EnchantedDeviceV2)
     .replaces(TuyaPoolManufCluster)
-
     .tuya_battery(dp_id=7, power_cfg=TuyaPowerConfigurationCluster, scale=1)
     .tuya_temperature(dp_id=2, scale=10)
     .tuya_sensor(
@@ -249,7 +256,7 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         unit=UnitOfTime.MINUTES,
         step=5,
         min_value=0,
-        max_value=1440,   
+        max_value=1440,
     )
     .add_to_registry()
 )
