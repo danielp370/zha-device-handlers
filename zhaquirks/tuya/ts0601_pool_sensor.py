@@ -1,25 +1,23 @@
 """Tuya pool sensor."""
 
 import asyncio
+from typing import Final
 
-from zigpy.quirks.v2 import CustomDeviceV2
-from zigpy.quirks.v2.homeassistant import UnitOfElectricPotential, UnitOfTime
+from zigpy.quirks.v2.homeassistant import (
+    CONCENTRATION_PARTS_PER_MILLION,
+    CONDUCTIVITY,
+    UnitOfElectricPotential,
+    UnitOfTime,
+)
 from zigpy.quirks.v2.homeassistant.number import NumberDeviceClass
 from zigpy.quirks.v2.homeassistant.sensor import SensorDeviceClass, SensorStateClass
 import zigpy.types as t
 
-from zhaquirks.tuya import TUYA_QUERY_DATA, EnchantedDevice, TuyaNewManufCluster
-from zhaquirks.tuya.builder import TuyaQuirkBuilder
-from zhaquirks.tuya.mcu import TuyaMCUCluster, TuyaPowerConfigurationCluster
+from zhaquirks.tuya import TUYA_QUERY_DATA, TuyaNewManufCluster
+from zhaquirks.tuya.builder import BatterySize, TuyaQuirkBuilder
+from zhaquirks.tuya.mcu import TuyaMCUCluster
 
-# Create a quirks v2 of Tuya's EnchantedDevice as we need Tuya spells
-EnchantedDevice.__bases__ = (CustomDeviceV2,)
-
-
-class EnchantedDeviceV2(EnchantedDevice):
-    """Updated version of EnchantedDevice based on CustomDeviceV2."""
-
-    tuya_spell_data_query: bool = True  # Enable data query spell
+CONCENTRATION_MICROGRAMS_PER_LITER: Final = "mg/L"
 
 
 class TuyaPoolManufCluster(TuyaMCUCluster):
@@ -82,9 +80,10 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
 
 (
     TuyaQuirkBuilder("_TZE200_v1jqz5cy", "TS0601")
-    .device_class(EnchantedDeviceV2)
-    .replaces(TuyaPoolManufCluster)
-    .tuya_battery(dp_id=7, power_cfg=TuyaPowerConfigurationCluster, scale=1)
+    .tuya_enchantment(read_attr_spell=True, data_query_spell=True)
+    .tuya_battery(
+        dp_id=7, battery_type=BatterySize.Built_in, battery_qty=4, battery_voltage=36
+    )
     .tuya_temperature(dp_id=2, scale=10)
     .tuya_sensor(
         dp_id=10,
@@ -100,25 +99,28 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         dp_id=1,
         attribute_name="total_dissolved_solids",
         type=t.uint16_t,
+        unit=CONCENTRATION_PARTS_PER_MILLION,
         state_class=SensorStateClass.MEASUREMENT,
         translation_key="total_dissolved_solids",
-        fallback_name="Total Dissolved Solids",
+        fallback_name="Total dissolved solids",
     )
     .tuya_sensor(
         dp_id=11,
         attribute_name="ec_measured_value",
         type=t.uint16_t,
+        unit=CONDUCTIVITY,
         state_class=SensorStateClass.MEASUREMENT,
         translation_key="ec_measured_value",
-        fallback_name="Electrical Conductivity",
+        fallback_name="Electrical conductivity",
     )
     .tuya_sensor(
         dp_id=117,
         attribute_name="salt_measured_value",
         type=t.uint16_t,
+        unit=CONCENTRATION_PARTS_PER_MILLION,
         state_class=SensorStateClass.MEASUREMENT,
         translation_key="salt_measured_value",
-        fallback_name="Salt Concentration",
+        fallback_name="Salt concentration",
     )
     .tuya_sensor(
         dp_id=101,
@@ -127,15 +129,16 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         unit=UnitOfElectricPotential.MILLIVOLT,
         state_class=SensorStateClass.MEASUREMENT,
         translation_key="redox_potential",
-        fallback_name="ORP Level",
+        fallback_name="ORP level",
     )
     .tuya_sensor(
         dp_id=102,
         attribute_name="cl_measured_value",
         type=t.uint16_t,
+        unit=CONCENTRATION_MICROGRAMS_PER_LITER,
         state_class=SensorStateClass.MEASUREMENT,
         translation_key="cl_measured_value",
-        fallback_name="Chlorine Concentration",
+        fallback_name="Chlorine concentration",
     )
     # TODO: 103 enum ?  pH Calibration
     # TODO: 104 bool ?
@@ -151,7 +154,7 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         mode="box",
         device_class=NumberDeviceClass.PH,
         translation_key="ph_max_value",
-        fallback_name="pH Maximum Value",
+        fallback_name="pH maximum value",
     )
     .tuya_number(
         dp_id=107,
@@ -164,7 +167,7 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         mode="box",
         device_class=NumberDeviceClass.PH,
         translation_key="ph_min_value",
-        fallback_name="pH Minimum Value",
+        fallback_name="pH minimum value",
     )
     .tuya_number(
         dp_id=108,
@@ -175,8 +178,9 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         min_value=0,
         max_value=20000,
         mode="box",
+        unit=CONDUCTIVITY,
         translation_key="ec_max_value",
-        fallback_name="EC Maximum Value",
+        fallback_name="EC maximum value",
     )
     .tuya_number(
         dp_id=109,
@@ -187,8 +191,9 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         min_value=0,
         max_value=20000,
         mode="box",
+        unit=CONDUCTIVITY,
         translation_key="ec_min_value",
-        fallback_name="EC Minimum Value",
+        fallback_name="EC minimum value",
     )
     .tuya_number(
         dp_id=110,
@@ -202,7 +207,7 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         unit=UnitOfElectricPotential.MILLIVOLT,
         device_class=NumberDeviceClass.VOLTAGE,
         translation_key="orp_max_value",
-        fallback_name="ORP Maximum Value",
+        fallback_name="ORP maximum value",
     )
     .tuya_number(
         dp_id=111,
@@ -216,7 +221,7 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         unit=UnitOfElectricPotential.MILLIVOLT,
         device_class=NumberDeviceClass.VOLTAGE,
         translation_key="orp_min_value",
-        fallback_name="ORP Minimum Value",
+        fallback_name="ORP minimum value",
     )
     .tuya_number(
         dp_id=112,
@@ -227,8 +232,9 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         min_value=0,
         max_value=4,
         mode="box",
+        unit=CONCENTRATION_MICROGRAMS_PER_LITER,
         translation_key="cl_max_value",
-        fallback_name="Cl Maximum Value",
+        fallback_name="Cl maximum value",
     )
     .tuya_number(
         dp_id=113,
@@ -239,8 +245,9 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         min_value=0,
         max_value=4,
         mode="box",
+        unit=CONCENTRATION_MICROGRAMS_PER_LITER,
         translation_key="cl_min_value",
-        fallback_name="Cl Minimum Value",
+        fallback_name="Cl minimum value",
     )
     # TODO: 114 uint16_t payload=0  pH Calibration
     # TODO: 115 uint16_t payload=0  EC Calibration
@@ -259,11 +266,11 @@ class TuyaPoolManufCluster(TuyaMCUCluster):
         attribute_name="auto_refresh_interval",
         type=t.uint16_t,
         translation_key="auto_refresh_interval",
-        fallback_name="Refresh Interval",
+        fallback_name="Refresh interval",
         unit=UnitOfTime.MINUTES,
         step=5,
         min_value=0,
         max_value=1440,
     )
-    .add_to_registry()
+    .add_to_registry(replacement_cluster=TuyaPoolManufCluster)
 )
