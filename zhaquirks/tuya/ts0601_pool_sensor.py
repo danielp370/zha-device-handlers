@@ -12,14 +12,13 @@ from zhaquirks.tuya import TUYA_QUERY_DATA, EnchantedDevice, TuyaNewManufCluster
 from zhaquirks.tuya.builder import TuyaQuirkBuilder
 from zhaquirks.tuya.mcu import TuyaMCUCluster, TuyaPowerConfigurationCluster
 
-# Create a quirks v2 of Tuya's EnchantedDevice as we need Tuya spells
-EnchantedDevice.__bases__ = (CustomDeviceV2,)
-
-
-class EnchantedDeviceV2(EnchantedDevice):
-    """Updated version of EnchantedDevice based on CustomDeviceV2."""
-
-    tuya_spell_data_query: bool = True  # Enable data query spell
+# Create a quirk's v2 of Tuya's EnchantedDevice as we need Tuya spells
+# This dynamic approach voids changes to EnchantedDevice
+EnchantedDeviceV2 = type(
+    "EnchantedDeviceV2",
+    (CustomDeviceV2, EnchantedDevice),
+    {"tuya_spell_data_query": True},
+)
 
 
 class TuyaPoolManufCluster(TuyaMCUCluster):
