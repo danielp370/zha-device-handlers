@@ -69,13 +69,13 @@ def test_tuya_pool_manuf_cluster_init(mock_get_loop, mock_loop, mock_device):
     cluster = TuyaPoolManufCluster(endpoint=mock_device.endpoints[1])
 
     # Verify attributes are initialized correctly
-    assert (
-        cluster._update_timer_handle is not None
-    ), "Timer handle should have been set via next_call"
+    assert cluster._update_timer_handle is not None, (
+        "Timer handle should have been set via next_call"
+    )
     assert cluster.check_interval == 60, "Default check_interval should be 60 seconds"
-    assert (
-        cluster.next_refresh_interval == 5 * 60
-    ), "Default next_refresh_interval should be 5*60"
+    assert cluster.next_refresh_interval == 5 * 60, (
+        "Default next_refresh_interval should be 5*60"
+    )
     assert cluster._loop is mock_loop, "Asyncio loop should be set correctly"
 
     # Verify that handle_auto_update_check_change is called
